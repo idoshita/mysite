@@ -25,7 +25,7 @@ from dj_database_url import parse as dburl
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-env.read_env(os.path.join(BASE_DIR,".env"))
+env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
 
@@ -163,5 +163,5 @@ MEDIA_URL = "/medea/"#画像を使えるようにする一文
 MEDIA_ROOT = os.path.join(BASE_DIR,"media")#画像を使えるようにする一文
 
 
-SUPERUSER_EMAIL = env("SUPERUSER_EMAIL")
-SUPERUSER_PASSWORD = env("SUPERUSER_PASSWORD")
+SUPERUSER_EMAIL = env('SUPERUSER_EMAIL')
+SUPERUSER_PASSWORD = env('SUPERUSER_PASSWORD')
