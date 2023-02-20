@@ -11,49 +11,45 @@
                         <h3>ご予約状況</h3>
 
 
-                        <p>{{ start_date }}～</p>
                         <hr>
-                        <h5>
-                        本日の予約人数合計:
-                        {{book_num}}
-                        &nbsp;&nbsp;&nbsp;&nbsp;
-                        (&nbsp;大人予約数:
-                        {{book_adlut}}
-                        &nbsp;&nbsp;&nbsp;&nbsp;
-                        子供予約数:
-                        {{book_child}}&nbsp;)</h5>
 
                         <table class="table">
                             <thead class="thead-light">
                                 <tr>
-                                    <th>お客様</th>
-                                    <th>大人数</th>
-                                    <th>子供数</th>
-                                    <th>電話番号</th>
+                                    <th>ご予約時間</th>
+                                    <th>大人予約数</th>
+                                    <th>子供予約数</th>
                                     <th>予約状況</th>
-                                    <th>予約の取消</th>
+                                    <th></th>
+
+
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for booking in booking_data %}
                                 {% if booking %}
                                 <tr>
-                                    <td style="vertical-align: middle;">{{ booking.user.name }}</td>
+                                    <td style="vertical-align: middle;">{{ booking.start }}</td>
                                     <td style="vertical-align: middle;">{{ booking.adlutnum }}</td>
                                     <td style="vertical-align: middle;">{{ booking.childnum }}</td>
-                                    <td style="vertical-align: middle;">{{ booking.user.tel }}</td>
-                                    <td style="vertical-align: middle;">{{ booking.active }}</td>
-                                    <td style="vertical-align: middle;">
-                                        {% if booking.active == True %}
-                                        <form method="POST" action="{% url 'reserves_deleters' booking.start.year booking.start.month booking.start.day booking.start.hour %}">
+                                    <td style="vertical-align: middle;">{% if booking.active == True %}
+                                        ご予約中
+                                        {% else %}
+                                        キャンセル済
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{% url 'reserves_deleter' booking.start.year booking.start.month booking.start.day booking.start.hour %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="id" value={{booking.id}}>
 
                                             <button class="btn btn-danger" type="submit">予約取消</button>
                                         </form>
-                                        {% endif %}
                                     </td>
+
                                 </tr>
+                                {% else %}
+                                <tr><td colspan="4">現在ご予約はございません。</td></tr>
                                 {% endif %}
                                 {% endfor %}
                             </tbody>
@@ -64,5 +60,6 @@
 
 
 </div>
+
 
 {% endblock %}

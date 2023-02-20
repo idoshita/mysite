@@ -2,11 +2,8 @@ from django import forms
 
 
 class BookingForm(forms.Form):
-    first_name = forms.CharField(max_length=100, label="姓")
-    last_name = forms.CharField(max_length=100, label="名")
-    tel = forms.CharField(max_length=100, label="電話番号")
-    adlutnum = forms.IntegerField(label="大人人数")
-    childnum = forms.IntegerField(label="子供人数")
+    adlutnum = forms.IntegerField(label="大人人数",max_value=3,min_value=0,initial=1)
+    childnum = forms.IntegerField(label="子供人数",max_value=3,min_value=0,initial=0)
 
 
 

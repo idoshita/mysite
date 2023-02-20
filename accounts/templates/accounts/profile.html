@@ -7,28 +7,67 @@
         <table class="profile_table mb-4">
             <tbody>
                 <tr>
-                    <th class="header">プロフィール画像</th>
-                    <td class="data">
-                    {% if user_data.image %}<img src="{{ user_data.image.url }}" alt="" width="100px">{% endif %}</td>
-                </tr>
-                <tr>
                     <th class="header">名前</th>
-                    <td class="data">{{ user_data.first_name }}{{ user_data.last_name }}</td>
+                    <td class="data">{{ user_data.name }}</td>
                 </tr>
                 <tr>
                     <th class="header">メールアドレス</th>
                     <td class="data">{{ user_data.email }}</td>
                 </tr>
                 <tr>
-                    <th class="header">自己紹介</th>
-                    <td class="data">{% if user_data.description %}{{ user_data.description }}{% endif %}</td>
+                    <th class="header">住所</th>
+                    <td class="data">{{ user_data.address }}</td>
+                </tr>
+                <tr>
+                    <th class="header">電話番号</th>
+                    <td class="data">{{ user_data.tel }}</td>
+                </tr>
+                <tr>
+                    <th class="header">性別</th>
+                    <td class="data">{{ user_data.gender }}</td>
                 </tr>
 
             </tbody>
         </table>
-        <div class="button mx-auto">
+        <div class="button mx-auto" style="text-align:center">
             <a href="{% url 'profile_edit' %}" class="btn btn-lg btn-warning btn-block">編集する</a>
         </div>
+<br><br><br><br>
+
+
+
+<!-- Button trigger modal -->
+<div class="button mx-auto" style="text-align:center">
+
+<p class="btn btn-lg btn-danger btn-block" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+    退会する
+</p>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">退会確認</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+        本当に退会をしますか。
+        </div>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+
+    <form method="post" action="{% url 'profile' %}">
+        {% csrf_token %}
+    <button type="submit" class="btn btn-primary">退会する</button>
+    </form>
+        </div>
+    </div>
     </div>
 </div>
+
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
 {% endblock %}

@@ -84,12 +84,13 @@
                             {% else %}
                         <p class="mb-0 font-weight-bold text-success text-center">
 
-                            {{ book }}人<a href="{% url 'reserves_toreserves' datetime.year datetime.month datetime.day hour %}"><button class="btn btn-success" type="button">予約者</button></a>
+                            {{ book }}人
+                            <a href="{% url 'reserves_toreserves' datetime.year datetime.month datetime.day hour %}"><button class="btn btn-success" type="button">予約者</button></a>
                         </p>
                             {% endif %}
                             <form method="POST" action="{% url 'reserves_delete' datetime.year datetime.month datetime.day hour %}">
                                 {% csrf_token %}
-                                <button class="btn btn-danger" type="submit">予約取消</button>
+                                <button class="btn btn-danger" type="submit">予約一括取消</button>
                             </form>
                         {% endif %}
                     </td>
@@ -100,12 +101,6 @@
         </table>
     </div>
     <div class="row">
-        <div class="col-md-3 mb-4 text-center mypage">
-            {% if staff_data.user.image %}
-            <img src="{{ staff_data.user.image.url }}" alt="" class="mb-3 img-fluid">
-            {% endif %}
-            <p>{{ staff_data.store.name }}:{{ staff_data.user.first_name }}{{ staff_data.user.last_name }}</p>
-        </div>
         <div class="col-md-9 mb-4">
             <div class="card">
                 <div class="card-body px-2 py-1">
@@ -122,9 +117,9 @@
                             </thead>
                             <tbody>
                                 {% for booking in booking_data %}
-                                {% if booking.first_name != None %}
+                                {% if booking.active %}
                                 <tr>
-                                    <td>{{ booking.first_name }}{{ booking.last_name }}</td>
+                                    <td>{{ booking.user.name }}</td>
                                     <td>{{ booking.start }}</td>
                                     <td>{{ booking.end }}</td>
                                 </tr>

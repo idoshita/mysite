@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.contrib import auth
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
+from django.core.validators import RegexValidator
 
 class UserManager(UserManager):
 
@@ -58,27 +59,39 @@ class UserManager(UserManager):
             )
         return self.none()
 
+class SexChoices(models.TextChoices):
+    MEN = '男性'
+    WOMEN = '女性'
+    Other = 'その他'
+
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField("メールアドレス",unique=True)
 
-    first_name = models.CharField("姓", max_length=150)
-    last_name = models.CharField("名", max_length=150)
-    description = models.TextField("自己紹介",default="",blank=True)#blank=Trueは、入力が必須でない場合に必要
-    image = models.ImageField(upload_to="images",verbose_name="プロフィール画像",null=True,blank=True)
+    name = models.CharField("名前", max_length=150, blank=True)
+    address = models.CharField("住所", max_length=150, blank=True)
+    phoneNumberRegex = RegexValidator(regex = r"^\+?1?\d{8,15}$")
+    tel = models.CharField("電話番号",validators = [phoneNumberRegex], max_length = 16,null=True,blank=True)
+
+    gender = models.CharField(
+        '性別',
+        choices=SexChoices.choices,
+        max_length=3,
+        null=True,blank=True
+    )
+
+
 
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
-        help_text=_('Designates whether the user can log into this admin site.'),
+        help_text=_('管理者ならTrue.'),
     )
     is_active = models.BooleanField(
         _('active'),
         default=True,
-        help_text=_(
-            'Designates whether this user should be treated as active. '
-            'Unselect this instead of deleting accounts.'
-        ),
+        help_text=_('在籍者ならTrue'),
     )
+
 
     objects = UserManager()
 

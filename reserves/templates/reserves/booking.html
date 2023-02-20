@@ -5,23 +5,13 @@
 <div class="card card-booking my-5 mx-auto">
     <div class="card-body">
         <h5 class="card-title text-center">予約内容</h5>
+
         <table class="booking_table mb-4">
             <tbody>
                 <tr>
-                    <th class="header">店舗</th>
-                    <td class="data">{{ staff_data.store.name }}</td>
-                </tr>
-                <tr>
-                    <th class="header">スタッフ</th>
-                    <td class="data">{{ staff_data.user.first_name }}{{ staff_data.user.last_name }}</td>
-                </tr>
-                <tr>
-                    <th class="header">日程</th>
-                    <td class="data">
-                        {% for error in form.non_field_errors %}
-                        {{ error }}
-                        {% endfor %}
-                        {{ year }}:{{ month }}:{{ day }}:{{ hour }}
+                    <th class="header">ご予約日時</th>
+                    <td class="data" style="text-align:center; font-size: 18px;">
+                        {{ year }}年{{ month }}月{{ day }}日&nbsp;&nbsp;&nbsp;&nbsp;{{ hour }}時から
                     </td>
                 </tr>
             </tbody>
@@ -32,21 +22,6 @@
             <table class="booking_table mb-4">
                 <tbody>
                     <tr>
-                        <th class="header">お名前</th>
-                        <td class="data form_wrap form_wrap__2col">
-                            {% render_field form.first_name class="form-control" placeholder="姓" %}
-                            <!-- 「render_field class="form-control"」がwidget_tweaksを利用した入力フォームの作成記述、「form.first_name」でrenderで返したform関数(BookingForm)の何の入力箇所かを指定している。 -->
-                            <!-- placeholderとは、入力箇所に最初から載っている文字（入力したら消える文字）のことである。 -->
-                            {% render_field form.last_name class="form-control" placeholder="名" %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="header">電話番号</th>
-                        <td class="data">
-                            {% render_field form.tel class="form-control" placeholder="000-0000-0000" %}
-                        </td>
-                    </tr>
-                    <tr>
                         <th class="header">大人予約人数</th>
                         <td class="data">
                             {% render_field form.adlutnum class="form-control" placeholder="大人予約人数" %}
@@ -56,10 +31,12 @@
                         <th class="header">子供予約人数</th>
                         <td class="data">
                             {% render_field form.childnum class="form-control" placeholder="子供予約人数" %}
+                            1回のご予約で、大人、子供の合計で3名様まで可能です。
                         </td>
                     </tr>
                 </tbody>
             </table>
+            {{form.non_field_errors}}
             <div class="button mx-auto">
                 <button class="btn btn-lg btn-warning btn-block" type="submit">予約確定</button>
             </div>

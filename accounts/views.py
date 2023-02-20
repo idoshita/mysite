@@ -68,3 +68,4 @@ class LogoutView(views.LogoutView):#allauthのログアウトビューを継承�
 class SignupView(views.SignupView):#allauthのサインアップビューを継承する。これで簡単にサインアップが可能となる。
     template_name = "accounts/signup.html"
     form_class = SignupUserForm #この記述により、オリジナルのフォームを利用する事ができるようになる。
+

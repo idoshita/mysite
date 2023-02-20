@@ -2,36 +2,17 @@
 {% block content %}
 
 <div class="text-center my-5">
-    <div class="row">
-        <div class="col-md-6 mb-4 text-center calendar">
-            {% if staff_data.user.image %}
-            <img src="{{ staff_data.user.image.url }}" alt="" class="img-fluid">
-            {% endif %}
-        </div>
 
-        <div class="col-md-6 mb-5">
-            <div class="card">
-                <div class="card-body px-2 py-1">
-                    <div class="p-4 text-left">
-                    <h3>{{ staff_data.user.first_name }}{{ staff_data.user.last_name }}</h3>
-                    <hr>
-                    <p>店舗：{{ staff_data.store.name }}</p>
-                    <p>{{ staff_data.user.description | linebreaksbr }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="mb-3">
         <h1>予約カレンダー</h1>
         <p>{{ start_day }}~{{ end_day }}</p>
     </div>
     <div class="d-flex mb-2">
         <div class="mx-3 mr-auto">
-            <a href="{% url 'reserves_calendar' staff_data.pk before.year before.month before.day %}" class="btn btn-warning">前週</a>
+            <a href="{% url 'reserves_calendar' before.year before.month before.day %}" class="btn btn-warning">前週</a>
         </div>
         <div class="mx-3">
-            <a href="{% url 'reserves_calendar' staff_data.pk next.year next.month next.day %}" class="btn btn-warning">次週</a>
+            <a href="{% url 'reserves_calendar' next.year next.month next.day %}" class="btn btn-warning">次週</a>
         </div>
     </div>
     <div class="">
@@ -66,7 +47,7 @@
                         <!-- もしdatetime(行が日付で、列が時間で、交わる場所)が今日(today)よりも前の日付であれば -->
                         -<!-- -（ハイフン）を表示する。 -->
                         {% elif book %}
-                        <a href="{% url 'reserves_booking' staff_data.pk datetime.year datetime.month datetime.day hour %}">
+                        <a href="{% url 'reserves_booking' datetime.year datetime.month datetime.day hour %}">
                             残り{{ book }}人
                             <!-- <i class="far fa-circle text-info"></i> -->
                             <!-- iタグは、英語表記を斜めのフォント(イタリック体)で表示するタグ -->

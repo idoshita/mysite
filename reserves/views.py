@@ -1,51 +1,21 @@
 from django.shortcuts import render,get_object_or_404,redirect
 from django.views.generic import View
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Store,Staff,Booking,MaxNum,DefaultValue
+from .models import Booking,MaxNum,DefaultValue
+from accounts.models import CustomUser
 from datetime import datetime,date,timedelta,time
 from django.db.models import Q
 from django.utils.timezone import localtime,make_aware
 from reserves.forms import BookingForm,MaxNumForm,DefaultValueForm,MaxNumeForm
 from django.views.decorators.http import require_POST
 
-#make_awareとは、「2019/10/28 13:07」のような時間を時間として認識する。naive timeは、逆に、「2019/10/28 13:07」のような時間を時間でなく文字として認識する。
-
-
-class StoreView(View):
-    def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:#is_authenticartedとは、ログインしていたらTrueを返す。もしuserがログインしていたら、
-            # staff_data = Staff.objects.filter(store=store_data).select_related("user")
-            start_date = date.today()
-            # weekday = start_date.weekday()
-            # if weekday != 6:#もし今日の日付が日曜日でなければ、
-            #     start_date = start_date - timedelta(days=weekday + 1)#今週の日曜日をstart_dateに設定する。
-            return redirect("reserves_mypage",start_date.year,start_date.month,start_date.day)#URLに開始日時の情報を渡している。
-        store_data = Store.objects.all()#すべてのadminに登録されているstoreデータを取得する。
-
-        return render(request, "reserves/store.html",{
-            "store_data":store_data,
-        })
-
-
-class StaffView(View):
-    def get(self, request, *args, **kwargs):
-        store_data = get_object_or_404(Store, id=self.kwargs["pk"])#もしstoreデータがない場合には、404が返される。idは、URLに記載してあるPKから取得する。
-        staff_data = Staff.objects.filter(store=store_data).select_related("user")#select_relatedを実行することで、userへのSQL実行回数を減らすことができる。つまり、パソコン内にキャッシュを残すことができるようになり、staffデータとstoreデータで紐づけられてるuserデータの読み込みがスムーズになる。
-
-        return render(request, "reserves/staff.html",{
-            "store_data":store_data,
-            "staff_data":staff_data,
-        })
-
 
 class CalendarView(View):
     def get(self, request, *args, **kwargs):
-        staff_data1 = Staff.objects.filter(id=self.kwargs["pk"])#[0]#.select_related("user").select_related("store")[0]#Staffデータの中から、URLのPKデータとIDが一致する人をstaff_dataとする。
-        staff_data = staff_data1[0]
-        #python内では、filterは、リスト形式の[キー:値]の形式で出力される。
-        #[0]などで、リストの番号を指定することで、リストの0番目のデータが値の形で取り出す事が出来る。
-        #[0]を使用しない場合には、リストを関数でstaff_data = staff_data1[0]で値の形で取り出す事により、値の形で取り出すことができる。
-        #.select_related("user").select_related("store")で、userデータとstoreデータのキャッシュを残すことで、データ読み込み処理を早める。この処理は、calendar.htmlで呼び出す際に必要になる。
+        if request.user.is_authenticated and request.user.is_staff:
+            start_date = date.today()
+            return redirect("reserves_mypage",start_date.year,start_date.month,start_date.day)#URLに開始日時の情報を渡している。
+
         today = date.today()
         year = self.kwargs.get("year")#URLからyearを取得する。
         month = self.kwargs.get("month")#URLからmonthを取得する。
@@ -61,7 +31,7 @@ class CalendarView(View):
 
         start_time = make_aware(datetime.combine(start_day,time(hour=10,minute=0,second=0)))#開始時間を作成している。
         end_time = make_aware(datetime.combine(end_day,time(hour=20,minute=0,second=0)))#終了時間を作成している。
-        booking_data = Booking.objects.filter(staff=staff_data).exclude(Q(start__gt=end_time)|Q(end__lt=start_time))
+        booking_data = Booking.objects.all().exclude(Q(start__gt=end_time)|Q(end__lt=start_time))
 
         kokok = DefaultValue.objects.all()
         defae = list(kokok.values())
@@ -89,7 +59,7 @@ class CalendarView(View):
                     for datetimer, book in schedules.items():
 
                         datebook = make_aware(datetime.combine(datetimer,time(hour=houre)))
-                        renum = Booking.objects.filter(staff=staff_data,start=datebook)
+                        renum = Booking.objects.filter(start=datebook,active=True)
                         childnum = sum([i.childnum for i in renum])
                         adlutnum = sum([i.adlutnum for i in renum])
                         g = childnum + adlutnum
@@ -108,7 +78,6 @@ class CalendarView(View):
                                 calendar[houre][datetimer] = munumb-g #calendarの二次元配列の該当する箇所をFalseにすることで予約を設定している。calendarリスト(二次元配列になっているリスト)の中の、行が[booking_hour]番目のデータと、列が[booking_date]番目のデータをFalseにしている。
 
             return render(request, "reserves/calendar.html",{
-                "staff_data":staff_data,
                 "calendar":calendar,
                 "days":days,
                 "start_day":start_day,
@@ -130,7 +99,6 @@ class CalendarView(View):
                 calendar[hour] = row#二次元配列を利用している。10~21を繰り返したものを、daysの7日間繰り返す処理で、二次元配列を完成させている。
 
             return render(request, "reserves/calendar.html",{
-                "staff_data":staff_data,
                 "calendar":calendar,
                 "days":days,
                 "start_day":start_day,
@@ -143,34 +111,37 @@ class CalendarView(View):
 
 
 
-class BookingView(View):
+class BookingView(LoginRequiredMixin,View):
     def get(self, request, *args, **kwargs):
-        staff_data = Staff.objects.filter(id=self.kwargs["pk"]).select_related("user").select_related("store")[0]
-        year = self.kwargs.get("year")
-        month = self.kwargs.get("month")
-        day = self.kwargs.get("day")
-        hour = self.kwargs.get("hour")
-        form = BookingForm(request.POST or None)
-        return render(request,"reserves/booking.html",{
-            "staff_data":staff_data,
-            "year":year,
-            "month":month,
-            "day":day,
-            "hour":hour,
-            "form":form
-        })
+        if request.user.is_authenticated:
+            user = CustomUser.objects.get(id=request.user.id)
+            year = self.kwargs.get("year")
+            month = self.kwargs.get("month")
+            day = self.kwargs.get("day")
+            hour = self.kwargs.get("hour")
+            form = BookingForm(request.POST or None)
+            return render(request,"reserves/booking.html",{
+                "year":year,
+                "user":user,
+                "month":month,
+                "day":day,
+                "hour":hour,
+                "form":form
+            })
+
 
     def post(self, request, *args, **kwargs):
-        staff_data = get_object_or_404(Staff, id=self.kwargs["pk"])
+        user = CustomUser.objects.get(id=request.user.id)
         year = self.kwargs.get("year")
         month = self.kwargs.get("month")
         day = self.kwargs.get("day")
         hour = self.kwargs.get("hour")
         start_time =make_aware(datetime(year=year,month=month,day=day,hour=hour))#kwargsで取得できる時間から、ローカル時間で開始時間を作成する。
         end_time =make_aware(datetime(year=year,month=month,day=day,hour=hour + 1))#終了時間は、開始時間の1時間後に設定する。
-        booking_data = Booking.objects.filter(staff=staff_data,start=start_time).count()#予約時間を、スタッフデータとスタートタイムでフィルターして取得する。つまり、Bookingデータの中でstaffがstaff_dataと一致して、startがstart_timeと一致するものをbooking_dataとして格納する。
+        booking_data = Booking.objects.filter(start=start_time,active=True).count()#予約時間を、スタッフデータとスタートタイムでフィルターして取得する。つまり、Bookingデータの中でstaffがstaff_dataと一致して、startがstart_timeと一致するものをbooking_dataとして格納する。
         form = BookingForm(request.POST or None)
-        munum = MaxNum.objects.filter(starts=start_time)
+        munum = MaxNum.objects.filter(starts=start_time).count()
+
 
         kokok = DefaultValue.objects.all()
         defae = list(kokok.values())
@@ -181,39 +152,46 @@ class BookingView(View):
         if munum and ((munum - booking_data) == 0):
             form.add_error(None,"既に予約が入ってしまいました。別の時間をお試しください。")
 
+
         else:
             if form.is_valid():
-                #<input type="submit">を利用して送信ボタンを作成した場合には、formの未入力箇所があると、Djangoがエラーを警告してくれるが、
-                #<a href>や<div>を利用して送信ボタンを作成した場合には、Djangoがエラーを返してくれないため、form.is_valid()で自分でエラー内容を作成する必要がある。
-                booking = Booking()#models.pyのBookingクラスのデータをbookingとする。
-                booking.staff = staff_data
+
+                booking = Booking()
                 booking.start = start_time
                 booking.end = end_time
-                booking.first_name = form.cleaned_data["first_name"]
-                booking.last_name = form.cleaned_data["last_name"]
-                booking.tel = form.cleaned_data["tel"]
-                booking.save()
+                booking.user = user
+                booking.childnum = form.cleaned_data["childnum"]
+                booking.adlutnum = form.cleaned_data["adlutnum"]
 
-                if munum:
-                    return redirect("reserves_thanks")
+
+                if (booking.childnum + booking.adlutnum)<4:
+                    booking.save()
+
+                    if munum:
+                        return redirect("reserves_thanks")
+                    else:
+                        mnunmer = MaxNum()
+                        mnunmer.starts = start_time
+                        mnunmer.ends = end_time
+                        mnunmer.maxnum = defa
+                        mnunmer.save()
+                        return redirect("reserves_thanks")
+
                 else:
-                    mnunmer = MaxNum()
-                    mnunmer.starts = start_time
-                    mnunmer.ends = end_time
-                    mnunmer.maxnum = defa
-                    mnunmer.save()
-                    return redirect("reserves_thanks")
+                    form.add_error(None,"1回のご予約で合計3名までしかご予約いただけません。再度のご予約は可能です。")
 
 
 
         return render(request, "reserves/booking.html",{
-            "staff_data":staff_data,
+            "user":user,
             "year":year,
             "month":month,
             "day":day,
             "hour":hour,
             "form":form,#formのバリデーションに失敗した場合には、予約画面に遷移します。
         })
+
+
 
 
 class ThanksView(View):
@@ -223,7 +201,6 @@ class ThanksView(View):
 
 class MypageView(LoginRequiredMixin,View):
     def get(self, request, *args, **kwargs):
-        staff_data = Staff.objects.filter(id=request.user.id).select_related("user").select_related("store")[0]
         year = self.kwargs.get("year")#URLからyearを取得する。
         month = self.kwargs.get("month")#URLからmonthを取得する。
         day = self.kwargs.get("day")#URLからdayを取得する。
@@ -234,7 +211,7 @@ class MypageView(LoginRequiredMixin,View):
         end_day = days[-1]#上記で定めたfor文の中の、start_dateから7日間が、daysのリスト形式になっているため、daysのリスト形式の-1番目(一番最後の日)の値をend_dayとする。
         start_time = make_aware(datetime.combine(start_day,time(hour=10,minute=0,second=0)))
         end_time = make_aware(datetime.combine(end_day,time(hour=20,minute=0,second=0)))
-        booking_data = Booking.objects.filter(staff=staff_data).exclude(Q(start__gt=end_time)|Q(end__lt=start_time))
+        booking_data = Booking.objects.all().exclude(Q(start__gt=end_time)|Q(end__lt=start_time))
 
         kokok = DefaultValue.objects.all()
         defae = list(kokok.values())
@@ -253,7 +230,7 @@ class MypageView(LoginRequiredMixin,View):
                 for datetimer, book in schedules.items():
 
                     datebook = make_aware(datetime.combine(datetimer,time(hour=houre)))
-                    renum = Booking.objects.filter(staff=staff_data,start=datebook)
+                    renum = Booking.objects.filter(start=datebook,active=True)
                     childnum = sum([i.childnum for i in renum])
                     adlutnum = sum([i.adlutnum for i in renum])
                     g = childnum + adlutnum
@@ -272,7 +249,6 @@ class MypageView(LoginRequiredMixin,View):
 
         return render(request, "reserves/mypage.html",{
             "booking_data":booking_data,
-            "staff_data":staff_data,
             "defa":defa,
             "calendar":calendar,
             "days":days,
@@ -289,8 +265,7 @@ class MypageView(LoginRequiredMixin,View):
 
 
 @require_POST#ボタンが押された時のみ動作する。
-def HolidayAll(request,year,month,day):
-    staff_data = Staff.objects.get(id=request.user.id)
+def HolidayAll(self,year,month,day):
     start_date = date(year=year,month=month,day=day)
 
 
@@ -319,8 +294,6 @@ def HolidayAll(request,year,month,day):
     dt9 = make_aware(datetime.combine(start_date,time(hour=20,minute=0,second=0)))
 
     dt10 = make_aware(datetime.combine(start_date,time(hour=21,minute=0,second=0)))
-
-
 
 
     booking = MaxNum(maxnum=0, starts=t,ends=dt)
@@ -357,28 +330,25 @@ def HolidayAll(request,year,month,day):
     booking10.save()
 
 
-    today_data = date.today()
-    today_data1 = date.today() + timedelta(days=1)
-    today_data2 = date.today() + timedelta(days=2)
-    today_data3 = date.today() + timedelta(days=3)
-    today_data4 = date.today() + timedelta(days=4)
-    today_data5 = date.today() + timedelta(days=5)
-    today_data6 = date.today() + timedelta(days=6)
-    today_data7 = date.today() + timedelta(days=7)
+    today = date.today()
+    today_weekday = today.weekday()
+    weekday = start_date.weekday()
 
-
-    if start_date==today_data or start_date==today_data1 or start_date==today_data2 or start_date==today_data3 or start_date==today_data4 or start_date==today_data5 or start_date==today_data6:
-        start_date = date.today()
+    adjustment = today_weekday - weekday
+    if adjustment <= 0:
+        start_date = start_date + timedelta(days=adjustment)
     else:
-        start_date = today_data7
+        start_date = start_date + timedelta(days=adjustment-7)
+
+
+
+
 
     return redirect("reserves_mypage",year=start_date.year,month=start_date.month,day=start_date.day)
 
 
-
 @require_POST#ボタンが押された時のみ動作する。
 def Holiday(self,year,month,day,hour):
-
     start_time = make_aware(datetime(year=year,month=month,day=day,hour=hour))#開始時間を作成している。
     end_time = make_aware(datetime(year=year,month=month,day=day,hour=hour +1 ))#終了時間を作成している。
 
@@ -391,49 +361,56 @@ def Holiday(self,year,month,day,hour):
     start_date = date(year=year,month=month,day=day)
 
 
-    today_data = date.today()
-    today_data1 = date.today() + timedelta(days=1)
-    today_data2 = date.today() + timedelta(days=2)
-    today_data3 = date.today() + timedelta(days=3)
-    today_data4 = date.today() + timedelta(days=4)
-    today_data5 = date.today() + timedelta(days=5)
-    today_data6 = date.today() + timedelta(days=6)
-    today_data7 = date.today() + timedelta(days=7)
+    today = date.today()
+    today_weekday = today.weekday()
+    weekday = start_date.weekday()
 
-
-    if start_date==today_data or start_date==today_data1 or start_date==today_data2 or start_date==today_data3 or start_date==today_data4 or start_date==today_data5 or start_date==today_data6:
-        start_date = date.today()
+    adjustment = today_weekday - weekday
+    if adjustment <= 0:
+        start_date = start_date + timedelta(days=adjustment)
     else:
-        start_date = today_data7
+        start_date = start_date + timedelta(days=adjustment-7)
+
+
+
 
     return redirect("reserves_mypage",year=start_date.year,month=start_date.month,day=start_date.day)
 
 
 
 @require_POST#ボタンが押された時のみ動作する。
-def Delete(request,year,month,day,hour):
-    staff_data = Staff.objects.get(id=request.user.id)
+def Delete(self,year,month,day,hour):
     start_time = make_aware(datetime(year=year,month=month,day=day,hour=hour))
-    booking_data = Booking.objects.filter(start=start_time)
+    booking_data = Booking.objects.filter(start=start_time,active=True)
 
-    booking_data.delete()#Bookingオブジェクトを削除している。
+
+    # booking_data.delete()#Bookingオブジェクトを削除している。
+    # print(booking_data)
+
+    for book in booking_data:
+        book = Booking(id=book.id,user=book.user,childnum=book.childnum,adlutnum=book.adlutnum,start=book.start,end=book.end,active=False)
+        book.save()
+
+
+
+
 
     start_date = date(year=year,month=month,day=day)
 
-    today_data = date.today()
-    today_data1 = date.today() + timedelta(days=1)
-    today_data2 = date.today() + timedelta(days=2)
-    today_data3 = date.today() + timedelta(days=3)
-    today_data4 = date.today() + timedelta(days=4)
-    today_data5 = date.today() + timedelta(days=5)
-    today_data6 = date.today() + timedelta(days=6)
-    today_data7 = date.today() + timedelta(days=7)
 
 
-    if start_date==today_data or start_date==today_data1 or start_date==today_data2 or start_date==today_data3 or start_date==today_data4 or start_date==today_data5 or start_date==today_data6:
-        start_date = date.today()
+    today = date.today()
+    today_weekday = today.weekday()
+    weekday = start_date.weekday()
+
+
+    adjustment = today_weekday - weekday
+    if adjustment <= 0:
+        start_date = start_date + timedelta(days=adjustment)
     else:
-        start_date = today_data7
+        start_date = start_date + timedelta(days=adjustment-7)
+
+
 
 
 
@@ -446,7 +423,6 @@ def Delete(request,year,month,day,hour):
 class NumChange(LoginRequiredMixin,View):
     def get(self, request, *args, **kwargs):
         # print(request.GET)
-        staff_data = Staff.objects.filter(id=request.user.id).select_related("user").select_related("store")[0]
         forme = MaxNumForm(request.POST or None)
         formes = DefaultValueForm(request.POST or None)
         formee = MaxNumeForm(request.POST or None)
@@ -484,7 +460,7 @@ class NumChange(LoginRequiredMixin,View):
                 for datetimer, book in schedules.items():
 
                     datebook = make_aware(datetime.combine(datetimer,time(hour=houre)))
-                    renum = Booking.objects.filter(staff=staff_data,start=datebook)
+                    renum = Booking.objects.filter(start=datebook,active=True)
                     childnum = sum([i.childnum for i in renum])
                     adlutnum = sum([i.adlutnum for i in renum])
                     g = childnum + adlutnum
@@ -507,7 +483,6 @@ class NumChange(LoginRequiredMixin,View):
 
 
         return render(request, "reserves/numchange.html",{
-            "staff_data":staff_data,
             "calendar":calendar,
             "defa":defa,
             "forme":forme,
@@ -666,7 +641,6 @@ class NumChange(LoginRequiredMixin,View):
 
 
 
-        staff_data = Staff.objects.filter(id=request.user.id).select_related("user").select_related("store")[0]
         today = date.today()
         year = self.kwargs.get("year")#URLからyearを取得する。
         month = self.kwargs.get("month")#URLからmonthを取得する。
@@ -699,7 +673,7 @@ class NumChange(LoginRequiredMixin,View):
                 for datetimer, book in schedules.items():
 
                     datebook = make_aware(datetime.combine(datetimer,time(hour=houre)))
-                    renum = Booking.objects.filter(staff=staff_data,start=datebook)
+                    renum = Booking.objects.filter(start=datebook,active=True)
                     childnum = sum([i.childnum for i in renum])
                     adlutnum = sum([i.adlutnum for i in renum])
                     g = childnum + adlutnum
@@ -722,7 +696,6 @@ class NumChange(LoginRequiredMixin,View):
 
 
         return render(request, "reserves/numchange.html",{
-            "staff_data":staff_data,
             "forme":forme,
             "formes":formes,
             "formee":formee,
@@ -734,7 +707,7 @@ class NumChange(LoginRequiredMixin,View):
             "next":days[-1] + timedelta(days=1),#beforeとは、timedeltaメソッドを使って、daysの0番目の7日前を表示する。
             "today":today,
         })
-    
+
 
 
 
@@ -746,8 +719,9 @@ class Toreserves(LoginRequiredMixin,View):
         hour = self.kwargs.get("hour")#URLからdayを取得する。
         start_date = datetime(year=year, month=month, day=day, hour=hour)
         booking_data = Booking.objects.filter(start=start_date)
-        book_child = sum([book.childnum for book in booking_data])
-        book_adlut = sum([book.adlutnum for book in booking_data])
+        booking_acdata = Booking.objects.filter(start=start_date,active=True)
+        book_child = sum([book.childnum for book in booking_acdata])
+        book_adlut = sum([book.adlutnum for book in booking_acdata])
         book_num = book_child + book_adlut
 
         return render(request, "reserves/toreserves.html",{
@@ -758,3 +732,89 @@ class Toreserves(LoginRequiredMixin,View):
             "book_adlut":book_adlut,
 
         })
+
+
+class UserView(LoginRequiredMixin,View):
+    def get(self, request, *args, **kwargs):
+        user = CustomUser.objects.get(id=request.user.id)
+        booking_data = Booking.objects.filter(user=user)
+
+        return render(request, "reserves/user.html",{
+            "booking_data":booking_data,
+            "user":user,
+        })
+
+
+@require_POST#ボタンが押された時のみ動作する。
+def UserDeleter(request,year,month,day,hour):
+    # print(request.POST["id"])
+    # print(year)
+    # print(month)
+    # print(day)
+    # print(hour)
+    # print(request.user)
+
+    # start_time = make_aware(datetime(year=year,month=month,day=day,hour=hour))
+    # print(start_time)
+
+    user = CustomUser.objects.get(id=request.user.id)
+    # print(user)
+
+    booking_data = Booking.objects.get(id=request.POST["id"])
+
+    # print(booking_data)
+
+    if request.method == 'POST':
+        book = Booking(id=booking_data.id,user=user,childnum=booking_data.childnum,adlutnum=booking_data.adlutnum,start=booking_data.start,end=booking_data.end,active=False)
+        book.save()
+    # Booking.objects.update_or_create
+    # booking = Booking(active=False)
+    # booking.save()
+
+
+    start_date = date(year=year,month=month,day=day)
+
+
+    today = date.today()
+    today_weekday = today.weekday()
+    weekday = start_date.weekday()
+
+
+    adjustment = today_weekday - weekday
+    if adjustment <= 0:
+        start_date = start_date + timedelta(days=adjustment)
+    else:
+        start_date = start_date + timedelta(days=adjustment-7)
+
+
+
+    return redirect("reserves_user")
+
+
+@require_POST#ボタンが押された時のみ動作する。
+def UserDeleters(request,year,month,day,hour):
+    # print(request.POST["id"])
+    # print(year)
+    # print(month)
+    # print(day)
+    # print(hour)
+    # print(request.user)
+
+    # start_time = make_aware(datetime(year=year,month=month,day=day,hour=hour))
+    # print(start_time)
+
+
+    booking_data = Booking.objects.get(id=request.POST["id"])
+
+    # print(booking_data)
+
+    if request.method == 'POST':
+        book = Booking(id=booking_data.id,user=booking_data.user,childnum=booking_data.childnum,adlutnum=booking_data.adlutnum,start=booking_data.start,end=booking_data.end,active=False)
+        book.save()
+    # Booking.objects.update_or_create
+    # booking = Booking(active=False)
+    # booking.save()
+
+    return redirect("reserves_toreserves",year,month,day,hour+9)
+
+
