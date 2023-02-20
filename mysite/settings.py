@@ -12,9 +12,17 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 from pathlib import Path
 import os
+import environ
+from decouple import config
+from dj_database_url import parse as dburl
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+env.read_env(os.path.join(BASE_DIR,".env"))
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -26,7 +34,7 @@ SECRET_KEY = 'b6o)t*=br&b1$_yaj+yrx$(9vqtswiohnys(+^v1dikc6d@7@2'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -51,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,12 +92,12 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+default_dburl = 'sqlite:///' + str(BASE_DIR / 'db.sqlite3')
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
+	'default': config('DATABASE_URL',default=default_dburl,cast=dburl),
 }
+
 
 
 # Password validation
@@ -128,6 +137,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = str(BASE_DIR / 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
 LOGIN_URL = '/accountslogin/'
 
 SITE_ID = 1
@@ -144,3 +157,7 @@ DEFAULT_AUTO_FIELD='django.db.models.AutoField'
 
 MEDIA_URL = "/medea/"#画像を使えるようにする一文
 MEDIA_ROOT = os.path.join(BASE_DIR,"media")#画像を使えるようにする一文
+
+
+SUPERUSER_EMAIL = env("SUPERUSER_EMAIL")
+SUPERUSER_PASSWORD = env("SUPERUSER_PASSWORD")
