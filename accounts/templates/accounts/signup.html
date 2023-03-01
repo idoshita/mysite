@@ -9,23 +9,23 @@
         
         <form method="post" class="form-auth">
             {% csrf_token %}
-            <div class="form-label-group form_wrap form_wrap-2">
+            <div class="form-label-group form_wrap">
                 {% render_field form.name calss="form-control" placeholder="名前" %}
             </div>
-            <div class="form-label-group">
+            <div class="form-label-group form_wrap">
                 {% render_field form.address calss="form-control" placeholder="住所" %}
             </div>
-            <div class="form-label-group">
+            <div class="form-label-group form_wrap">
                 {% render_field form.tel calss="form-control" placeholder="電話番号" %}
             </div>
-            <div class="form-label-group">
+            <div class="form-label-group form_wrap">
                 {% render_field form.gender calss="form-control" placeholder="性別" %}
             </div>
 
-            <div class="form-label-group">
+            <div class="form-label-group form_wrap">
                 {% render_field form.email calss="form-control" placeholder="メールアドレス" %}
-            </div>
-            <div class="form-label-group form_wrap form_wrap-2">
+            </div><br>
+            <div class="form-label-group form_wrap">
                 {% render_field form.password1 calss="form-control" placeholder="パスワード" %}
                 {% render_field form.password2 calss="form-control" placeholder="パスワード（確認）" %}
             </div>
