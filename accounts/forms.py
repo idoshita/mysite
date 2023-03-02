@@ -12,12 +12,10 @@ from accounts.models import SexChoices
 
 class ProfileForm(forms.Form):
 
-    email = forms.EmailField(label="メールアドレス")
     name = forms.CharField(label="名前", max_length=150)
     address = forms.CharField(label="住所", max_length=150)
     phoneNumberRegex = RegexValidator(regex = r"^\+?1?\d{8,15}$")
     tel = forms.CharField(label="電話番号",validators = [phoneNumberRegex], max_length = 16)
-    gender = forms.CharField(label='性別')
 
 
 

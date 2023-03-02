@@ -20,13 +20,13 @@ class ProfileView(LoginRequiredMixin, View):
 class EditView(LoginRequiredMixin, View):
     def get(self, request,*args,**kwargs):
         user_data = CustomUser.objects.get(id=request.user.id)# データベースからカスタムユーザーを取得する。
+        print(user_data)
         form = ProfileForm(
             request.POST or None,# GETで呼び出した際には、Noneなので、単純なデータベースを表示する。POSTされた際にformを表示。
             initial={# initialは、インスタンスのフォーム初期化時に設定するものである。
-                "first_name":user_data.first_name,
-                "last_name":user_data.last_name,
-                "description":user_data.description,
-                "image":user_data.image,
+                "name":user_data.name,
+                "address":user_data.address,
+                "tel":user_data.tel,
             }
         )
 
@@ -39,13 +39,15 @@ class EditView(LoginRequiredMixin, View):
         form = ProfileForm(request.POST or None)
         if form.is_valid():# .is_validでformの内容をチェックする
             user_data = CustomUser.objects.get(id=request.user.id)
-            user_data.first_name = form.cleaned_data["first_name"]#フォームされた時の処理なので、.cleaned_dataで、formで送られた情報を取得する。
-            user_data.last_name = form.cleaned_data["last_name"]
-            user_data.description = form.cleaned_data["description"]
-            if request.FILES.get("image"):#もし画像が変更された場合は、
-                user_data.image = request.FILES.get("image")
-            user_data.save()#.cleaned_dataで変更になったデータをセーブ(保存)する。
+            user_data.name = form.cleaned_data["name"]#フォームされた時の処理なので、.cleaned_dataで、formで送られた情報を取得する。
+            user_data.address = form.cleaned_data["address"]
+            user_data.tel = form.cleaned_data["tel"]
+            user_change = CustomUser(id=user_data.id,password=user_data.password,email=user_data.email,name=user_data.name,address=user_data.address,tel=user_data.tel,gender=user_data.gender,is_staff=user_data.is_staff,is_active=user_data.is_active)
+            # if request.FILES.get("image"):#もし画像が変更された場合は、
+            #     user_data.image = request.FILES.get("image")
+            user_change.save()#.cleaned_dataで変更になったデータをセーブ(保存)する。
             return redirect("profile")#セーブが完了したら、プロフィールに遷移します。
+
 
         return render(request,"accounts/profile.html",{
             "form":form,
